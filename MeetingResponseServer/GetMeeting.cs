@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 namespace MeetingResponseServer
 {
@@ -12,7 +13,7 @@ namespace MeetingResponseServer
     {
         public static async Task<IActionResult> GetMeeting(DateTime startTime, DateTime endTime)
         {
-            AuthenticationConfig config = AuthenticationConfig.ReadFromJsonFile("appsettings.json");
+            var config = Models.AuthenticationConfigModel.ReadFromJsonFile("appsettings.json");
 
             // Even if this is a console application here, a daemon application is a confidential client application
             IConfidentialClientApplication app;
@@ -33,8 +34,10 @@ namespace MeetingResponseServer
 
             var httpClient = new HttpClient();
             var apiCaller = new ProtectedApiCallHelper(httpClient);
-            var response = await apiCaller.CallWebApiAndProcessResultASync($"https://graph.microsoft.com/v1.0/users/{config.MyUserId}/calendarview?startdatetime={startTime}&enddatetime={endTime}", result.AccessToken);
+            var requestUrl = $"https://graph.microsoft.com/v1.0/users/{config.MyUserId}/calendarview?startdatetime={startTime}&enddatetime={endTime}";
+            var response = await apiCaller.CallWebApiAndProcessResultASync(requestUrl, result.AccessToken);
             return new OkObjectResult(response);
+            // TODO: 結果のJsonを MeetingModel に変換したい
         }
     }
 }

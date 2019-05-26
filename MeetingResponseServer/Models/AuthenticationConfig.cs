@@ -27,13 +27,13 @@ using System;
 using System.Globalization;
 using System.IO;
 
-namespace MeetingResponseServer
+namespace MeetingResponseServer.Models
 {
     /// <summary>
     /// Description of the configuration of an AzureAD public client application (desktop/mobile application). This should
     /// match the application registration done in the Azure portal
     /// </summary>
-    public class AuthenticationConfig
+    public class AuthenticationConfigModel
     {
         /// <summary>
         /// instance of Azure AD, for example public Azure or a Sovereign cloud (Azure China, Germany, US government, etc ...)
@@ -53,6 +53,9 @@ namespace MeetingResponseServer
         /// </summary>
         public string ClientId { get; set; }
         public string MyUserId { get; set; }
+        public string MessagingUserId { get; set; }
+
+        public string LineMessagingApiSecret { get; set; }
 
         /// <summary>
         /// URL of the authority
@@ -91,7 +94,7 @@ namespace MeetingResponseServer
         /// </summary>
         /// <param name="path">Path to the configuration json file</param>
         /// <returns>AuthenticationConfig read from the json file</returns>
-        public static AuthenticationConfig ReadFromJsonFile(string path)
+        public static AuthenticationConfigModel ReadFromJsonFile(string path)
         {
             IConfigurationRoot Configuration;
 
@@ -100,7 +103,7 @@ namespace MeetingResponseServer
             .AddJsonFile(path);
 
             Configuration = builder.Build();
-            return Configuration.Get<AuthenticationConfig>();
+            return Configuration.Get<AuthenticationConfigModel>();
         }
     }
 
