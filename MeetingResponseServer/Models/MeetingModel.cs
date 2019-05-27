@@ -5,39 +5,19 @@ using System.Globalization;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
-//    var meetingModel = MeetingModel.FromJson(jsonString);
-
 namespace MeetingResponseServer.Models
 {
-
+    
     public partial class MeetingModel
-    {
-        [JsonProperty("value")]
-        public MeetingModelValue Value { get; set; }
-
-        [JsonProperty("formatters")]
-        public List<object> Formatters { get; set; }
-
-        [JsonProperty("contentTypes")]
-        public List<object> ContentTypes { get; set; }
-
-        [JsonProperty("declaredType")]
-        public object DeclaredType { get; set; }
-
-        [JsonProperty("statusCode")]
-        public long StatusCode { get; set; }
-    }
-
-    public partial class MeetingModelValue
     {
         [JsonProperty("@odata.context")]
         public Uri OdataContext { get; set; }
 
         [JsonProperty("value")]
-        public List<ValueElement> Value { get; set; }
+        public Value[] Value { get; set; }
     }
 
-    public partial class ValueElement
+    public partial class Value
     {
         [JsonProperty("@odata.etag")]
         public string OdataEtag { get; set; }
@@ -55,7 +35,7 @@ namespace MeetingResponseServer.Models
         public string ChangeKey { get; set; }
 
         [JsonProperty("categories")]
-        public List<object> Categories { get; set; }
+        public object[] Categories { get; set; }
 
         [JsonProperty("originalStartTimeZone")]
         public string OriginalStartTimeZone { get; set; }
@@ -133,10 +113,10 @@ namespace MeetingResponseServer.Models
         public Location Location { get; set; }
 
         [JsonProperty("locations")]
-        public List<Location> Locations { get; set; }
+        public Location[] Locations { get; set; }
 
         [JsonProperty("attendees")]
-        public List<Attendee> Attendees { get; set; }
+        public Attendee[] Attendees { get; set; }
 
         [JsonProperty("organizer")]
         public Organizer Organizer { get; set; }
@@ -184,7 +164,7 @@ namespace MeetingResponseServer.Models
     public partial class End
     {
         [JsonProperty("dateTime")]
-        public DateTimeOffset DateTime { get; set; }
+        public DateTime DateTime { get; set; }
 
         [JsonProperty("timeZone")]
         public string TimeZone { get; set; }
@@ -202,7 +182,7 @@ namespace MeetingResponseServer.Models
         public string LocationType { get; set; }
 
         [JsonProperty("uniqueId")]
-        public string UniqueId { get; set; }
+        public Guid UniqueId { get; set; }
 
         [JsonProperty("uniqueIdType")]
         public string UniqueIdType { get; set; }

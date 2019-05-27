@@ -55,7 +55,7 @@ namespace MeetingResponseServer
         /// <param name="webApiUrl">Url of the Web API to call (supposed to return Json)</param>
         /// <param name="accessToken">Access token used as a bearer security token to call the Web API</param>
         /// <param name="processResult">Callback used to process the result of the call to the Web API</param>
-        public async Task<JObject> CallWebApiAndProcessResultASync(string webApiUrl, string accessToken)
+        public async Task<T> CallWebApiAndProcessResultAsync<T>(string webApiUrl, string accessToken)
         {
             var defaultRequetHeaders = HttpClient.DefaultRequestHeaders;
             if (defaultRequetHeaders.Accept == null || !defaultRequetHeaders.Accept.Any(m => m.MediaType == "application/json"))
@@ -68,7 +68,7 @@ namespace MeetingResponseServer
             response.EnsureSuccessStatusCode(); // 失敗だったら例外が飛ぶ
 
             var json = await response.Content.ReadAsStringAsync();
-            return JsonConvert.DeserializeObject(json) as JObject;
+            return JsonConvert.DeserializeObject<T>(json);
         }
     }
 }

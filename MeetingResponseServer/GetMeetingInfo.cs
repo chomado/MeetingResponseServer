@@ -14,14 +14,15 @@ using CEK.CSharp.Models;
 using Line.Messaging;
 using System.Collections.Generic;
 using Newtonsoft.Json;
+using System.Linq;
 
 namespace MeetingResponseServer
 {
     public static class GetMeetingInfo
     {
-        private static string IntroductionMessage { get; } = "こんにちは、デコード2019のデモアプリです。予定を教えてと聞いてください。";
-        private static string HelloMessage { get; } = "こんにちは、ちょまどさん！";
-        private static string ErrorMessage { get; } = "すみません、わかりませんでした！";
+        private static string[] IntroductionMessage { get; } = { "こんにちは、デコード2019のデモアプリです。予定を教えてと聞いてください。" };
+        private static string[] HelloMessage { get; } = { "こんにちは、ちょまどさん！" };
+        private static string[] ErrorMessage { get; } = { "すみません、わかりませんでした！" };
 
         [FunctionName("GetMeetingInfo")]
         public static async Task<IActionResult> Run(
@@ -41,32 +42,47 @@ namespace MeetingResponseServer
             switch (cekRequest.Request.Type)
             {
                 case RequestType.LaunchRequest:
-                    cekResponse.AddText(IntroductionMessage);
+                    cekResponse.AddText(IntroductionMessage[0]);
                     cekResponse.ShouldEndSession = false;
                     break;
                 case RequestType.IntentRequest:
                     {
                         // intent ごとに処理を振り分け
                         cekRequest.Request.Intent.Slots.TryGetValue(key: "when", value: out var when);
-                        var r = await HandleIntentAsync(cekRequest.Request.Intent.Name, when?.Value ?? "今日");
-                        cekResponse.AddText(r);
+                        var texts = await HandleIntentAsync(cekRequest.Request.Intent.Name, when?.Value ?? "今日");
 
-                        // LINE にプッシュ通知する
-                        if (r != null)
+                        if (texts.Any())
+                        {
+                            foreach (var text in texts)
+                            {
+                                cekResponse.AddText(text);
+                            }
+                        }
+                        else
+                        {
+                            cekResponse.AddText("予定はありません。");
+                        }
+
+                        // 予定があったら LINE にプッシュ通知する
+                        if (texts.Any())
                         {
                             var config = Models.AuthenticationConfigModel.ReadFromJsonFile("appsettings.json");
                             var secret = config.LineMessagingApiSecret;
+
+                            var textMessages = new List<ISendMessage>();
+
+                            textMessages.Add(new TextMessage("ちょまどさんの予定はこちら！"));
+                            foreach (var text in texts)
+                            {
+                                textMessages.Add(new TextMessage(text));
+                            }
 
                             var messagingClient = new LineMessagingClient(secret);
                             await messagingClient.PushMessageAsync(
                                 //to: cekRequest.Session.User.UserId,
                                 to: config.MessagingUserId,
-                                messages: new List<ISendMessage>
-                                {
-                                    new TextMessage($"ちょまどさんの予定はこちら！"),
-                                    new TextMessage($@"タイトル『{r}』
-{r}"),
-                                });
+                                messages: textMessages
+                            );
                         }
                     }
                     break;
@@ -75,7 +91,7 @@ namespace MeetingResponseServer
         }
 
 
-        private static async Task<string> HandleIntentAsync(string intent, string meetingDay)
+        private static async Task<IEnumerable<string>> HandleIntentAsync(string intent, string meetingDay)
         {
             switch (intent)
             {
@@ -85,29 +101,46 @@ namespace MeetingResponseServer
                 case "AskScheduleIntent":
                     {
                         var start = ConvertJname2Datetime(meetingDay);
-                        //var response = await MeetingInfo.GetMeeting(startTime: start, endTime: start.AddDays(1));
-                        
-                        return $"{meetingDay}のスケジュールを聞かれました";
+                        var response = await MeetingInfo.GetMeeting(startTime: start, endTime: start.AddDays(1));
+
+                        return ScheduleMessage(response.Value);
                     }
                 default:
                     return ErrorMessage;
             }
         }
 
-        // "今日" -> DateTime
-        private static DateTime ConvertJname2Datetime(string when)
+        private static IEnumerable<string> ScheduleMessage(Models.Value[] meeting)
         {
-            var utc = DateTime.UtcNow;
+            return meeting
+                .Select(x => $"{x.Start.DateTime.ToJst().Hour}時{x.Start.DateTime.ToJst().Minute}分から{x.Subject}があります。");
+        }
+
+        // "今日" -> DateTime
+        private static DateTimeOffset ConvertJname2Datetime(string when)
+        {
+            var temp = DateTimeOffset.UtcNow.ToJst();
+            var utc = new DateTimeOffset(temp.Date, temp.Offset);
 
             switch (when)
             {
                 case "今日":
-                    utc = DateTime.UtcNow;
                     break;
                 case "明日":
-                    utc = DateTime.UtcNow.AddDays(1);
+                    utc = utc.AddDays(1);
                     break;
             }
+            return utc;
+        }
+
+        // UTC -> JST
+        private static DateTimeOffset ToJst(this DateTimeOffset utc)
+        {
+            var jstZoneInfo = TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time");
+            return utc.ToOffset(jstZoneInfo.BaseUtcOffset);
+        }
+        private static DateTime ToJst(this DateTime utc)
+        {
             var jstZoneInfo = TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time");
             return TimeZoneInfo.ConvertTimeFromUtc(utc, jstZoneInfo);
         }

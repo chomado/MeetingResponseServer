@@ -11,7 +11,7 @@ namespace MeetingResponseServer
 {
     public static class MeetingInfo
     {
-        public static async Task<IActionResult> GetMeeting(DateTime startTime, DateTime endTime)
+        public static async Task<Models.MeetingModel> GetMeeting(DateTimeOffset startTime, DateTimeOffset endTime)
         {
             var config = Models.AuthenticationConfigModel.ReadFromJsonFile("appsettings.json");
 
@@ -34,10 +34,9 @@ namespace MeetingResponseServer
 
             var httpClient = new HttpClient();
             var apiCaller = new ProtectedApiCallHelper(httpClient);
-            var requestUrl = $"https://graph.microsoft.com/v1.0/users/{config.MyUserId}/calendarview?startdatetime={startTime}&enddatetime={endTime}";
-            var response = await apiCaller.CallWebApiAndProcessResultASync(requestUrl, result.AccessToken);
-            return new OkObjectResult(response);
-            // TODO: 結果のJsonを MeetingModel に変換したい
+            var requestUrl = $"https://graph.microsoft.com/v1.0/users/{config.MyUserId}/calendarview?startdatetime={startTime.ToUniversalTime().DateTime}&enddatetime={endTime.ToUniversalTime().DateTime}";
+            var response = await apiCaller.CallWebApiAndProcessResultAsync<Models.MeetingModel>(requestUrl, result.AccessToken);
+            return response;
         }
     }
 }
