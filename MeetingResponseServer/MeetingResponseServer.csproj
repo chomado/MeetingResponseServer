@@ -1,7 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <TargetFramework>netcoreapp2.2</TargetFramework>
     <AzureFunctionsVersion>v2</AzureFunctionsVersion>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
   <ItemGroup>
     <None Remove="appsettings.json" />
@@ -13,10 +14,11 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CEK.CSharp" Version="0.1.8" />
+    <PackageReference Include="Google.Cloud.Dialogflow.V2" Version="1.0.0-beta02" />
+    <PackageReference Include="Google.Protobuf" Version="3.8.0-rc.1" />
     <PackageReference Include="Line.Messaging" Version="1.4.5" />
     <PackageReference Include="Microsoft.Identity.Client" Version="3.0.8" />
-    <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="1.0.24" />
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
+    <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="1.0.28" />
   </ItemGroup>
   <ItemGroup>
     <None Update="host.json">

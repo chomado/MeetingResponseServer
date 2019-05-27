@@ -15,6 +15,8 @@ using Line.Messaging;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using System.Linq;
+using Google.Protobuf;
+using Google.Cloud.Dialogflow.V2;
 
 namespace MeetingResponseServer
 {
@@ -49,7 +51,7 @@ namespace MeetingResponseServer
                     {
                         // intent ごとに処理を振り分け
                         cekRequest.Request.Intent.Slots.TryGetValue(key: "when", value: out var when);
-                        var texts = await HandleIntentAsync(cekRequest.Request.Intent.Name, when?.Value ?? "今日");
+                        var texts = await HandleIntentAsync(cekRequest.Request.Intent.Name, when?.Value ?? "今日", Platforms.Clova);
 
                         if (texts.Any())
                         {
@@ -91,7 +93,44 @@ namespace MeetingResponseServer
         }
 
 
-        private static async Task<IEnumerable<string>> HandleIntentAsync(string intent, string meetingDay)
+        [FunctionName("GoogleHome")]
+        public static async Task<IActionResult> GoogleHome([HttpTrigger(AuthorizationLevel.Function, "post", Route = null)]HttpRequest req, ILogger log)
+        {
+            var parser = new JsonParser(JsonParser.Settings.Default.WithIgnoreUnknownFields(true));
+            var webhookRequest = parser.Parse<WebhookRequest>(await req.ReadAsStringAsync());
+            var entities = webhookRequest.QueryResult.Parameters.Fields["when"].StringValue;
+            var webhookResponse = new WebhookResponse();
+            log.LogInformation(webhookRequest.QueryResult.Intent.DisplayName);
+            switch (webhookRequest.QueryResult.Intent.DisplayName)
+            {
+                case "Default Welcome Intent":
+                    webhookResponse.FulfillmentText = IntroductionMessage[0];
+                    break;
+                default:
+                    {
+                        var texts = await HandleIntentAsync(webhookRequest.QueryResult.Intent.DisplayName, entities, Platforms.GoogleAssistant);
+                        if (texts.Any())
+                        {
+                            var fulfillmentText = "ちょまどさんの予定をお知らせします。\n";
+                            foreach (var text in texts)
+                            {
+                                fulfillmentText += $"{text}\n";
+                            }
+                            webhookResponse.FulfillmentText = fulfillmentText;
+                        }
+                        else
+                        {
+                            webhookResponse.FulfillmentText = "予定はありません。";
+                        }
+                    }
+                    break;
+            }
+
+            return new ProtcolBufJsonResult(webhookResponse, JsonFormatter.Default);
+        }
+
+
+        private static async Task<IEnumerable<string>> HandleIntentAsync(string intent, object meetingDay, Platforms platform)
         {
             switch (intent)
             {
@@ -100,13 +139,29 @@ namespace MeetingResponseServer
                 // 明日の予定を教えて
                 case "AskScheduleIntent":
                     {
-                        var start = ConvertJname2Datetime(meetingDay);
+
+                        var start = ParseMeetingDay(meetingDay, platform);
                         var response = await MeetingInfo.GetMeeting(startTime: start, endTime: start.AddDays(1));
 
                         return ScheduleMessage(response.Value);
                     }
                 default:
                     return ErrorMessage;
+            }
+        }
+
+        private static DateTimeOffset ParseMeetingDay(object meetingDay, Platforms platform)
+        {
+            if (platform == Platforms.Clova || platform == Platforms.Alexa)
+            {
+                return ConvertJname2Datetime((string)meetingDay);
+            }
+            else
+            {
+                // GoogleAssistant
+                // 	2019-05-27T12:00:00+09:00
+                var d = DateTimeOffset.Parse((string)meetingDay);
+                return new DateTimeOffset(d.Date, d.Offset);
             }
         }
 
