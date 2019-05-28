@@ -182,7 +182,7 @@ namespace MeetingResponseServer.Models
         public string LocationType { get; set; }
 
         [JsonProperty("uniqueId")]
-        public Guid UniqueId { get; set; }
+        public string UniqueId { get; set; }
 
         [JsonProperty("uniqueIdType")]
         public string UniqueIdType { get; set; }
