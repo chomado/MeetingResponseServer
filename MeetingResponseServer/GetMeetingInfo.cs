@@ -17,6 +17,9 @@ using Newtonsoft.Json;
 using System.Linq;
 using Google.Protobuf;
 using Google.Cloud.Dialogflow.V2;
+using Alexa.NET.Request;
+using Alexa.NET.Request.Type;
+using Alexa.NET.Response;
 
 namespace MeetingResponseServer
 {
@@ -97,6 +100,52 @@ namespace MeetingResponseServer
             return new OkObjectResult(cekResponse);
         }
 
+        [FunctionName("Alexa")]
+        public static async Task<IActionResult> Alexa([HttpTrigger(AuthorizationLevel.Function, "post", Route = null)]HttpRequest req, ILogger log)
+        {
+            var skillRequest = JsonConvert.DeserializeObject<SkillRequest>(await new StreamReader(req.Body).ReadToEndAsync());
+            var skillResponse = new SkillResponse
+            {
+                Version = "1.0",
+                Response = new ResponseBody(),
+            };
+            switch (skillRequest.Request)
+            {
+                case LaunchRequest lr:
+                    skillResponse.Response.OutputSpeech = new PlainTextOutputSpeech
+                    {
+                        Text = IntroductionMessage[0],
+                    };
+                    break;
+                case IntentRequest ir:
+                    {
+                        var texts = await HandleIntentAsync(ir.Intent.Name, "今日", Platforms.Alexa);
+                        
+                        if (texts.Any())
+                        {
+                            var plainTextOutputSpeech = "ちょまどさんの予定をお知らせします。\n";
+                            foreach (var text in texts)
+                            {
+                                plainTextOutputSpeech += $"{text}\n";
+                            }
+                            skillResponse.Response.OutputSpeech = new PlainTextOutputSpeech { Text = plainTextOutputSpeech };
+                        }
+                        else
+                        {
+                            skillResponse.Response.OutputSpeech = new PlainTextOutputSpeech { Text = "予定はありません。" };
+                        }
+                    }
+                    break;
+                default:
+                    skillResponse.Response.OutputSpeech = new PlainTextOutputSpeech
+                    {
+                        Text = "すいません。わかりません。",
+                    };
+                    break;
+            }
+
+            return new OkObjectResult(skillResponse);
+        }
 
         [FunctionName("GoogleHome")]
         public static async Task<IActionResult> GoogleHome(
