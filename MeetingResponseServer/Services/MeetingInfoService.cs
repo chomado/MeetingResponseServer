@@ -7,9 +7,9 @@ using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 
-namespace MeetingResponseServer
+namespace MeetingResponseServer.Services
 {
-    public static class MeetingInfo
+    public static class MeetingInfoService
     {
         public static async Task<Models.MeetingModel> GetMeeting(DateTimeOffset startTime, DateTimeOffset endTime)
         {

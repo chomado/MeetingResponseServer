@@ -31,26 +31,31 @@ namespace MeetingResponseServer
             [HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)] HttpRequest req,
             ILogger log)
         {
-            var response = await MeetingInfo.GetMeeting(startTime: DateTime.UtcNow, endTime: DateTime.UtcNow.AddDays(1));
+            var response = await Services.MeetingInfoService.GetMeeting(startTime: DateTime.UtcNow, endTime: DateTime.UtcNow.AddDays(1));
             return new OkObjectResult(response);
         }
 
         [FunctionName("Line")]
-        public static async Task<IActionResult> Line([HttpTrigger(AuthorizationLevel.Function, "post", Route = null)]HttpRequest req, ExecutionContext context, ILogger log)
+        public static async Task<IActionResult> Line(
+            [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)]HttpRequest req, ExecutionContext context, 
+            ILogger log)
         {
             var client = new ClovaClient();
             var cekRequest = await client.GetRequest(req.Headers["SignatureCEK"], req.Body);
             var cekResponse = new CEKResponse();
             switch (cekRequest.Request.Type)
             {
+                // 起動時に飛んでくる intent
                 case RequestType.LaunchRequest:
                     cekResponse.AddText(IntroductionMessage[0]);
                     cekResponse.ShouldEndSession = false;
                     break;
+                // ユーザ定義の intent
                 case RequestType.IntentRequest:
                     {
-                        // intent ごとに処理を振り分け
+                        // slot を抜き出す
                         cekRequest.Request.Intent.Slots.TryGetValue(key: "when", value: out var when);
+                        // intent ごとに処理を振り分け
                         var texts = await HandleIntentAsync(cekRequest.Request.Intent.Name, when?.Value ?? "今日", Platforms.Clova);
 
                         if (texts.Any())
@@ -94,7 +99,9 @@ namespace MeetingResponseServer
 
 
         [FunctionName("GoogleHome")]
-        public static async Task<IActionResult> GoogleHome([HttpTrigger(AuthorizationLevel.Function, "post", Route = null)]HttpRequest req, ILogger log)
+        public static async Task<IActionResult> GoogleHome(
+            [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)]HttpRequest req, 
+            ILogger log)
         {
             var parser = new JsonParser(JsonParser.Settings.Default.WithIgnoreUnknownFields(true));
             var webhookRequest = parser.Parse<WebhookRequest>(await req.ReadAsStringAsync());
@@ -141,7 +148,7 @@ namespace MeetingResponseServer
                     {
 
                         var start = ParseMeetingDay(meetingDay, platform);
-                        var response = await MeetingInfo.GetMeeting(startTime: start, endTime: start.AddDays(1));
+                        var response = await Services.MeetingInfoService.GetMeeting(startTime: start, endTime: start.AddDays(1));
 
                         return ScheduleMessage(response.Value);
                     }
