@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.2</TargetFramework>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
     <AzureFunctionsVersion>v2</AzureFunctionsVersion>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
@@ -13,6 +13,7 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Alexa.NET" Version="1.6.3" />
     <PackageReference Include="CEK.CSharp" Version="0.1.8" />
     <PackageReference Include="Google.Cloud.Dialogflow.V2" Version="1.0.0-beta02" />
     <PackageReference Include="Google.Protobuf" Version="3.8.0-rc.1" />
