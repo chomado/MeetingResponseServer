@@ -99,8 +99,9 @@ namespace MeetingResponseServer.Models
             IConfigurationRoot Configuration;
 
             var builder = new ConfigurationBuilder()
-             .SetBasePath(Directory.GetCurrentDirectory())
-            .AddJsonFile(path);
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile(path, optional: true)
+                .AddEnvironmentVariables();
 
             Configuration = builder.Build();
             return Configuration.Get<AuthenticationConfigModel>();

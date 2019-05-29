@@ -57,7 +57,8 @@ namespace MeetingResponseServer
                 case RequestType.IntentRequest:
                     {
                         // slot を抜き出す
-                        cekRequest.Request.Intent.Slots.TryGetValue(key: "when", value: out var when);
+                        CEK.CSharp.Models.Slot when = null;
+                        cekRequest.Request.Intent.Slots?.TryGetValue(key: "when", value: out when);
                         // intent ごとに処理を振り分け
                         var texts = await HandleIntentAsync(cekRequest.Request.Intent.Name, when?.Value ?? "今日", Platforms.Clova);
 
@@ -101,7 +102,9 @@ namespace MeetingResponseServer
         }
 
         [FunctionName("Alexa")]
-        public static async Task<IActionResult> Alexa([HttpTrigger(AuthorizationLevel.Function, "post", Route = null)]HttpRequest req, ILogger log)
+        public static async Task<IActionResult> Alexa(
+            [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)]HttpRequest req, 
+            ILogger log)
         {
             var skillRequest = JsonConvert.DeserializeObject<SkillRequest>(await new StreamReader(req.Body).ReadToEndAsync());
             var skillResponse = new SkillResponse
@@ -119,7 +122,8 @@ namespace MeetingResponseServer
                     break;
                 case IntentRequest ir:
                     {
-                        var texts = await HandleIntentAsync(ir.Intent.Name, "今日", Platforms.Alexa);
+                        
+                        var texts = await HandleIntentAsync(ir.Intent.Name, ir.Intent.Slots["when"].Value, Platforms.Alexa);
                         
                         if (texts.Any())
                         {
@@ -195,10 +199,8 @@ namespace MeetingResponseServer
                 // 明日の予定を教えて
                 case "AskScheduleIntent":
                     {
-
                         var start = ParseMeetingDay(meetingDay, platform);
                         var response = await Services.MeetingInfoService.GetMeeting(startTime: start, endTime: start.AddDays(1));
-
                         return ScheduleMessage(response.Value);
                     }
                 default:
@@ -224,7 +226,7 @@ namespace MeetingResponseServer
         private static IEnumerable<string> ScheduleMessage(Models.Value[] meeting)
         {
             return meeting
-                .Select(x => $"{x.Start.DateTime.ToJst().Hour}時{x.Start.DateTime.ToJst().Minute}分から{x.Subject}があります。");
+                .Select(x => $"{x.Start.DateTime.ToJst().Hour}時{x.Start.DateTime.ToJst().Minute}分から{x.Subject}があります。場所は{x.Location.DisplayName}です。");
         }
 
         // "今日" -> DateTime
